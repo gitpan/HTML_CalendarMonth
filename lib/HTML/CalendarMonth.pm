@@ -3,11 +3,10 @@ package HTML::CalendarMonth;
 use strict;
 use vars qw($VERSION $AUTOLOAD @ISA);
 
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 use     Carp;
 use     Time::Local;
-use     Date::Manip;
 
 require HTML::ElementTable;
 
@@ -24,7 +23,7 @@ my %COMPLEX_ATTRS = (
 		     'week_begin'   => 1,  # What DOW (1-7) is the 1st DOW?
 		     
 		     'historic'     => 0,  # If able to choose, use 'cal'
-	                              	   # rather than Date::Manip, which
+	                              	   # rather than Date::Calc, which
                                            # blindly extrapolates Gregorian
 		     
 		     'row_offset'   => 0,  # Displacment within table
@@ -319,7 +318,7 @@ sub _anchor_month {
   # Anchor month
   # If contemporary, between Jan 1, 1970 and 2038 - use timelocal
   # If historic/futuristic, use 'cal' if available
-  # Otherwise use Date::Manip.
+  # Otherwise use Date::Calc.
   my $self = shift;
 
   my $month = $self->monthnum($self->month);
@@ -360,7 +359,8 @@ sub _anchor_month {
     }
   } else {
     # Date::Calc to save the day
-    eval "use Date::Calc qw(Days_in_Month Day_of_Week);";
+    require Date::Calc;
+    Date::Calc->import(qw(Days_in_Month Day_of_Week));
     $lastday = Days_in_Month($year, $month);
     # Date::Calc uses 1..7 as indicies in the week, starting with Monday.
     # Internally, we use 0..6, starting with Sunday.  These turn out
@@ -380,7 +380,8 @@ sub _gen_week_nums {
   # Generate week-of-the-year numbers (according to Date::Calc)
   # Week 1 is the week containing the first Thursday of the year.
   my $self = shift;
-  eval "use Date::Calc qw(Week_Number Week_of_Year Weeks_in_Year);";
+  require Date::Calc;
+  Date::Calc->import(qw(Week_Number Week_of_Year Weeks_in_Year));
   my($fweek, $lweek);
   $fweek = Week_Number($self->year, $self->monthnum, 1);
   $lweek  = Week_Number($self->year, $self->monthnum, $self->lastday);
@@ -467,10 +468,15 @@ sub daytime {
 				   $self->monthnum($self->month)+1,
 				   $self->year);
   } else {
-    require Date::Manip;
-    $secs = Date::Manip::Date_SecsSince1970($self->monthnum($self->month),
-					    $day,$self->year);
+    require Date::Calc;
+    my $days = Date::Calc::Delta_Days(
+				      # Jan 1, 1970
+				      1970, 1, 1,
+				      # A particular day of this month
+				      $self->year, $self->monthnum, $day);
+    $secs = $days * 24 * 60 * 60;
   }
+  # Yes, this will return negative secs if the date is before Jan 1, 1970;
   $secs;
 }
 

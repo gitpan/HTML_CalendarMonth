@@ -10,3 +10,7 @@ Revision history for Perl extension HTML::CalendarMonth.
 	- abstracted item/coord translations to cell refs
 	  rather than redundant coord lookups
 	- initial release
+
+1.01 Thu Sep 16 15:33:41 CDT 1999
+	- Distribution patch
+	- Purged erroneus Date::Manip references
